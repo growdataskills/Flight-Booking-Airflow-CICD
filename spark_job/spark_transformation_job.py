@@ -15,13 +15,15 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
     try:
 
         # MongoDB URI
-        mongo_uri = f"mongodb://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/{mongodb_db}?directConnection=true"
+        mongo_uri = f"mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/{mongodb_db}?retryWrites=true&w=majority&connectTimeoutMS=60000"
 
         # Initialize SparkSession
         spark = SparkSession.builder \
             .appName("FlightBookingAnalysis") \
             .config("spark.mongodb.input.uri", mongo_uri) \
             .config("spark.mongodb.output.uri", mongo_uri) \
+            .config("spark.executor.extraJavaOptions", "-Dlog4j.configuration=log4j.properties") \
+            .config("spark.driver.extraJavaOptions", "-Dlog4j.configuration=log4j.properties") \
             .getOrCreate()
 
         logger.info("Spark session initialized.")

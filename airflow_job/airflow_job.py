@@ -64,8 +64,11 @@ with DAG(
         "environment_config": {
             "execution_config": {
                 "service_account": "70622048644-compute@developer.gserviceaccount.com",
-                "network_tags": [],
-                "kms_key": "",
+                "subnetwork_uri": "projects/psyched-service-442305-q1/regions/us-central1/subnetworks/default",
+                # Use public IPs for Dataproc Serverless instances
+                "enable_network_egress_control": False,  # Allow external internet access
+                "service_account": "70622048644-compute@developer.gserviceaccount.com",
+                "network_tags": ["dataproc-serverless"],  # Optional: Add tags for egress firewall rules
             }
         },
     }
