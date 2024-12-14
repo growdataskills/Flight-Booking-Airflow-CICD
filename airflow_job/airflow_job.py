@@ -4,6 +4,8 @@ from airflow import DAG
 from airflow.providers.google.cloud.operators.dataproc import DataprocCreateBatchOperator
 from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor
 from airflow.models import Variable
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
+from airflow.operators.python import PythonOperator
 
 # DAG default arguments
 default_args = {
@@ -37,16 +39,42 @@ with DAG(
     # Generate a unique batch ID using UUID
     batch_id = f"flight-booking-batch-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
 
-    # Task 1: File Sensor for GCS
-    file_sensor = GCSObjectsWithPrefixExistenceSensor(
-        task_id="check_file_existence",
-        bucket=gcs_bucket,  # GCS bucket
-        prefix=f"airflow-project-1/source-{env}/",  # GCS path
-        google_cloud_conn_id="google_cloud_default",  # GCP connection
-        timeout=300,  # Timeout in seconds
-        poke_interval=30,  # Time between checks
-        mode="poke",  # Blocking mode
+    # Custom Python function to check for .csv files in the prefix
+    def check_csv_files_in_gcs(bucket_name, prefix, google_cloud_conn_id, **kwargs):
+        gcs_hook = GCSHook(google_cloud_conn_id)
+        files = gcs_hook.list(bucket_name=bucket_name, prefix=prefix)
+        
+        # Filter for files ending with .csv
+        csv_files = [file for file in files if file.endswith('.csv')]
+        
+        if not csv_files:
+            raise ValueError(f"No CSV files found in GCS prefix: {prefix}")
+        
+        # Push the first CSV file name to XCom for downstream tasks
+        kwargs['ti'].xcom_push(key='csv_file_name', value=csv_files[0])
+
+    # Task 1: Custom PythonOperator to check for .csv files
+    check_csv_files_task = PythonOperator(
+        task_id="check_csv_files_in_gcs",
+        python_callable=check_csv_files_in_gcs,
+        op_kwargs={
+            "bucket_name": gcs_bucket,
+            "prefix": f"airflow-project-1/source-{env}/",
+            "google_cloud_conn_id": "google_cloud_default",
+        },
+        provide_context=True,
     )
+
+    # # Task 1: File Sensor for GCS
+    # file_sensor = GCSObjectsWithPrefixExistenceSensor(
+    #     task_id="check_file_existence",
+    #     bucket=gcs_bucket,  # GCS bucket
+    #     prefix=f"airflow-project-1/source-{env}/",  # GCS path
+    #     google_cloud_conn_id="google_cloud_default",  # GCP connection
+    #     timeout=300,  # Timeout in seconds
+    #     poke_interval=30,  # Time between checks
+    #     mode="poke",  # Blocking mode
+    # )
 
     # Task 2: Submit PySpark job to Dataproc Serverless
     batch_details = {
@@ -85,4 +113,6 @@ with DAG(
     )
 
     # Task Dependencies
-    file_sensor >> pyspark_task
+    # file_sensor >> pyspark_task
+
+    check_csv_files_task >> pyspark_task
