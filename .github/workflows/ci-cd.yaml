@@ -36,7 +36,7 @@ jobs:
           gcloud composer environments storage data import \
             --environment airflow-dev \
             --location us-central1 \
-            --source variables/dev
+            --source variables/dev/variables.json
 
       # Sync Spark job to GCS
       - name: Upload Spark Job to GCS
@@ -78,7 +78,7 @@ jobs:
           gcloud composer environments storage data import \
             --environment airflow-prod \
             --location us-central1 \
-            --source variables/prod
+            --source variables/prod/variables.json
 
       # Sync Spark job to GCS
       - name: Upload Spark Job to GCS
