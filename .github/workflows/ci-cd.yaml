@@ -30,13 +30,17 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      # Sync variables to Airflow DEV Composer
-      - name: Upload Variables to Airflow-DEV
+      # Upload `variables.json` to Composer bucket
+      - name: Upload Variables JSON to GCS
         run: |
-          gcloud composer environments storage data import \
-            --environment airflow-dev \
+          gsutil cp variables/dev/variables.json gs://us-central1-airflow-dev-44b39ca5-bucket/data/dev/variables.json
+
+      # Import Variables into Airflow-DEV
+      - name: Import Variables into Airflow-DEV
+        run: |
+          gcloud beta composer environments run airflow-dev \
             --location us-central1 \
-            --source variables/dev/variables.json
+            variables import -- /home/airflow/gcs/data/dev/variables.json
 
       # Sync Spark job to GCS
       - name: Upload Spark Job to GCS
