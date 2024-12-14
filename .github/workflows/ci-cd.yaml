@@ -29,7 +29,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          install_components: composer
 
       # Sync variables to Airflow DEV Composer
       - name: Upload Variables to Airflow-DEV
@@ -72,7 +71,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          install_components: composer
 
       # Sync variables to Airflow PROD Composer
       - name: Upload Variables to Airflow-PROD
