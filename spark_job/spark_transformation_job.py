@@ -11,19 +11,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def main(env, mongodb_db, transformed_collection, route_insights_collection, origin_insights_collection):
+def main(env, bq_project, bq_dataset, transformed_table, route_insights_table, origin_insights_table):
     try:
-
-        # MongoDB URI
-        mongo_uri = f"mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/{mongodb_db}?retryWrites=true&w=majority&connectTimeoutMS=60000"
-
         # Initialize SparkSession
         spark = SparkSession.builder \
             .appName("FlightBookingAnalysis") \
-            .config("spark.mongodb.input.uri", mongo_uri) \
-            .config("spark.mongodb.output.uri", mongo_uri) \
-            .config("spark.executor.extraJavaOptions", "-Dlog4j.configuration=log4j.properties") \
-            .config("spark.driver.extraJavaOptions", "-Dlog4j.configuration=log4j.properties") \
+            .config("spark.sql.catalogImplementation", "hive") \
             .getOrCreate()
 
         logger.info("Spark session initialized.")
@@ -65,37 +58,34 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
 
         logger.info("Data transformations completed.")
 
-        # Write transformed data to MongoDB
-        logger.info(f"Writing transformed data to MongoDB collection: {transformed_collection}")
+        # Write transformed data to BigQuery
+        logger.info(f"Writing transformed data to BigQuery table: {bq_project}:{bq_dataset}.{transformed_table}")
         transformed_data.write \
-            .format("mongodb") \
-            .option("spark.mongodb.connection.uri", mongo_uri) \
-            .option("spark.mongodb.database", mongodb_db) \
-            .option("spark.mongodb.collection", transformed_collection) \
+            .format("bigquery") \
+            .option("table", f"{bq_project}:{bq_dataset}.{transformed_table}") \
+            .option("writeMethod", "direct") \
             .mode("overwrite") \
             .save()
 
-        # Write route insights to MongoDB
-        logger.info(f"Writing route insights to MongoDB collection: {route_insights_collection}")
+        # Write route insights to BigQuery
+        logger.info(f"Writing route insights to BigQuery table: {bq_project}:{bq_dataset}.{route_insights_table}")
         route_insights.write \
-            .format("mongodb") \
-            .option("spark.mongodb.connection.uri", mongo_uri) \
-            .option("spark.mongodb.database", mongodb_db) \
-            .option("spark.mongodb.collection", route_insights_collection) \
+            .format("bigquery") \
+            .option("table", f"{bq_project}:{bq_dataset}.{route_insights_table}") \
+            .option("writeMethod", "direct") \
             .mode("overwrite") \
             .save()
 
-        # Write booking origin insights to MongoDB
-        logger.info(f"Writing booking origin insights to MongoDB collection: {origin_insights_collection}")
+        # Write booking origin insights to BigQuery
+        logger.info(f"Writing booking origin insights to BigQuery table: {bq_project}:{bq_dataset}.{origin_insights_table}")
         booking_origin_insights.write \
-            .format("mongodb") \
-            .option("spark.mongodb.connection.uri", mongo_uri) \
-            .option("spark.mongodb.database", mongodb_db) \
-            .option("spark.mongodb.collection", origin_insights_collection) \
+            .format("bigquery") \
+            .option("table", f"{bq_project}:{bq_dataset}.{origin_insights_table}") \
+            .option("writeMethod", "direct") \
             .mode("overwrite") \
             .save()
 
-        logger.info("Data written to MongoDB successfully.")
+        logger.info("Data written to BigQuery successfully.")
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
@@ -108,20 +98,22 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
 
 if __name__ == "__main__":
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Process flight booking data and write to MongoDB.")
+    parser = argparse.ArgumentParser(description="Process flight booking data and write to BigQuery.")
     parser.add_argument("--env", required=True, help="Environment (e.g., dev, prod)")
-    parser.add_argument("--mongodb_db", required=True, help="MongoDB database name")
-    parser.add_argument("--transformed_collection", required=True, help="MongoDB collection for transformed data")
-    parser.add_argument("--route_insights_collection", required=True, help="MongoDB collection for route insights")
-    parser.add_argument("--origin_insights_collection", required=True, help="MongoDB collection for booking origin insights")
+    parser.add_argument("--bq_project", required=True, help="BigQuery project ID")
+    parser.add_argument("--bq_dataset", required=True, help="BigQuery dataset name")
+    parser.add_argument("--transformed_table", required=True, help="BigQuery table for transformed data")
+    parser.add_argument("--route_insights_table", required=True, help="BigQuery table for route insights")
+    parser.add_argument("--origin_insights_table", required=True, help="BigQuery table for booking origin insights")
 
     args = parser.parse_args()
 
     # Call the main function with parsed arguments
     main(
         env=args.env,
-        mongodb_db=args.mongodb_db,
-        transformed_collection=args.transformed_collection,
-        route_insights_collection=args.route_insights_collection,
-        origin_insights_collection=args.origin_insights_collection
+        bq_project=args.bq_project,
+        bq_dataset=args.bq_dataset,
+        transformed_table=args.transformed_table,
+        route_insights_table=args.route_insights_table,
+        origin_insights_table=args.origin_insights_table
     )

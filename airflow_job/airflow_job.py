@@ -16,19 +16,23 @@ default_args = {
 
 # Define the DAG
 with DAG(
-    dag_id="flight_booking_dataproc_serverless_dag",
+    dag_id="flight_booking_dataproc_bq_dag",
     default_args=default_args,
     schedule_interval=None,  # Trigger manually or on-demand
     catchup=False,
 ) as dag:
 
-    # Environment variable (read from Airflow Variables)
+    # Fetch environment variables
     env = Variable.get("env", default_var="dev")
-    mongodb_db = Variable.get("mongodb_db", default_var="flight_data")
-    transformed_collection = Variable.get("transformed_collection", default_var="transformed_data")
-    route_insights_collection = Variable.get("route_insights_collection", default_var="route_insights")
-    origin_insights_collection = Variable.get("origin_insights_collection", default_var="booking_origin_insights")
-    gcs_path = f"gs://airflow-projects-gds/airflow-project-1/source-{env}"
+    gcs_bucket = Variable.get("gcs_bucket", default_var="airflow-projetcs-gds")
+    bq_project = Variable.get("bq_project", default_var="psyched-service-442305-q1")
+    bq_dataset = Variable.get("bq_dataset", default_var=f"flight_data_{env}")
+    tables = Variable.get("tables", deserialize_json=True)
+
+    # Extract table names from the 'tables' variable
+    transformed_table = tables["transformed_table"]
+    route_insights_table = tables["route_insights_table"]
+    origin_insights_table = tables["origin_insights_table"]
 
     # Generate a unique batch ID using UUID
     batch_id = f"flight-booking-batch-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
@@ -36,7 +40,7 @@ with DAG(
     # Task 1: File Sensor for GCS
     file_sensor = GCSObjectsWithPrefixExistenceSensor(
         task_id="check_file_existence",
-        bucket="airflow-projetcs-gds",  # GCS bucket
+        bucket=gcs_bucket,  # GCS bucket
         prefix=f"airflow-project-1/source-{env}/",  # GCS path
         google_cloud_conn_id="google_cloud_default",  # GCP connection
         timeout=300,  # Timeout in seconds
@@ -45,17 +49,19 @@ with DAG(
     )
 
     # Task 2: Submit PySpark job to Dataproc Serverless
-    batch_details={
+    batch_details = {
         "pyspark_batch": {
-            "main_python_file_uri": "gs://airflow-projetcs-gds/airflow-project-1/spark-job/spark_transformation_job.py",  # Main Python file
+            "main_python_file_uri": f"gs://{gcs_bucket}/airflow-project-1/spark-job/spark_transformation_job.py",  # Main Python file
             "python_file_uris": [],  # Python WHL files
             "jar_file_uris": ["gs://airflow-projetcs-gds/airflow-project-1/spark-jars/mongo-spark-connector_2.12-10.3.0-all.jar"],  # JAR files
             "args": [
                 f"--env={env}",
-                f"--mongodb_db={mongodb_db}",
-                f"--transformed_collection={transformed_collection}",
-                f"--route_insights_collection={route_insights_collection}",
-                f"--origin_insights_collection={origin_insights_collection}",
+                f"--gcs_bucket={gcs_bucket}",
+                f"--bq_project={bq_project}",
+                f"--bq_dataset={bq_dataset}",
+                f"--transformed_table={transformed_table}",
+                f"--route_insights_table={route_insights_table}",
+                f"--origin_insights_table={origin_insights_table}",
             ]
         },
         "runtime_config": {
@@ -66,18 +72,19 @@ with DAG(
                 "service_account": "70622048644-compute@developer.gserviceaccount.com",
                 "network_uri": "projects/psyched-service-442305-q1/global/networks/default",
                 "subnetwork_uri": "projects/psyched-service-442305-q1/regions/us-central1/subnetworks/default",
+                "enable_network_egress_control": False,  # Ensure public internet access
             }
         },
     }
 
     pyspark_task = DataprocCreateBatchOperator(
-                    task_id="run_spark_job_on_dataproc_serverless",
-                    batch=batch_details,
-                    batch_id=batch_id,
-                    project_id="psyched-service-442305-q1",
-                    region="us-central1",
-                    gcp_conn_id="google_cloud_default",
-                )
+        task_id="run_spark_job_on_dataproc_serverless",
+        batch=batch_details,
+        batch_id=batch_id,
+        project_id="psyched-service-442305-q1",
+        region="us-central1",
+        gcp_conn_id="google_cloud_default",
+    )
 
     # Task Dependencies
     file_sensor >> pyspark_task
