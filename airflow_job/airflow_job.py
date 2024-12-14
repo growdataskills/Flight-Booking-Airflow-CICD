@@ -56,7 +56,6 @@ with DAG(
             "jar_file_uris": ["gs://airflow-projetcs-gds/airflow-project-1/spark-jars/mongo-spark-connector_2.12-10.3.0-all.jar"],  # JAR files
             "args": [
                 f"--env={env}",
-                f"--gcs_bucket={gcs_bucket}",
                 f"--bq_project={bq_project}",
                 f"--bq_dataset={bq_dataset}",
                 f"--transformed_table={transformed_table}",
