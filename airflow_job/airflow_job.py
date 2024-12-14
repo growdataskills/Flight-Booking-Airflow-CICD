@@ -39,6 +39,7 @@ with DAG(
         bucket="airflow-projects-gds",  # GCS bucket
         object=f"airflow-project-1/source-{env}",  # GCS path
         google_cloud_conn_id="google_cloud_default",  # GCP connection
+        project_id="psyched-service-442305-q1",
         timeout=300,  # Timeout in seconds
         poke_interval=30,  # Time between checks
         mode="poke",  # Blocking mode
