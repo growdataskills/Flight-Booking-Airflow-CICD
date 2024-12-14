@@ -59,7 +59,7 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
         logger.info("Data transformations completed.")
 
         # MongoDB URI
-        mongo_uri = "mongodb+srv://your_user:your_password@mongo-db-cluster.mongodb.net/your_db"
+        mongo_uri = "mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/?retryWrites=true&w=majority&appName=mongo-db-cluster"
 
         # Write transformed data to MongoDB
         logger.info(f"Writing transformed data to MongoDB collection: {transformed_collection}")

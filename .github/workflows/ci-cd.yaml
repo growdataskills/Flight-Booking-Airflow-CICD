@@ -53,7 +53,7 @@ jobs:
           gcloud composer environments storage dags import \
             --environment airflow-dev \
             --location us-central1 \
-            --source airflow_job/airflow_test.py
+            --source airflow_job/airflow_job.py
 
   upload-to-prod:
     if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
@@ -76,13 +76,17 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      # Sync variables to Airflow PROD Composer
-      - name: Upload Variables to Airflow-PROD
+      # Upload `variables.json` to Composer bucket
+      - name: Upload Variables JSON to GCS
         run: |
-          gcloud composer environments storage data import \
-            --environment airflow-prod \
+          gsutil cp variables/prod/variables.json gs://us-central1-airflow-prod-5fd790a9-bucket/data/prod/variables.json
+
+      # Import Variables into Airflow-PROD
+      - name: Import Variables into Airflow-PROD
+        run: |
+          gcloud composer environments run airflow-prod \
             --location us-central1 \
-            --source variables/prod/variables.json
+            variables import -- /home/airflow/gcs/data/prod/variables.json
 
       # Sync Spark job to GCS
       - name: Upload Spark Job to GCS
@@ -95,4 +99,4 @@ jobs:
           gcloud composer environments storage dags import \
             --environment airflow-prod \
             --location us-central1 \
-            --source airflow_job/airflow_test.py
+            --source airflow_job/airflow_job.py

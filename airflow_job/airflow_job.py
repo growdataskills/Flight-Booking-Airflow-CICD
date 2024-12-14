@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
+import uuid  # Import UUID for unique batch IDs
 from airflow import DAG
-from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
+from airflow.providers.google.cloud.operators.dataproc import DataprocCreateBatchOperator
 from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
 from airflow.models import Variable
 
@@ -15,7 +16,7 @@ default_args = {
 
 # Define the DAG
 with DAG(
-    dag_id="flight_booking_dataproc_dag",
+    dag_id="flight_booking_dataproc_serverless_dag",
     default_args=default_args,
     schedule_interval=None,  # Trigger manually or on-demand
     catchup=False,
@@ -29,6 +30,9 @@ with DAG(
     origin_insights_collection = Variable.get("origin_insights_collection", default_var="booking_origin_insights")
     gcs_path = f"gs://airflow-projects-gds/airflow-project-1/source-{env}"
 
+    # Generate a unique batch ID using UUID
+    batch_id = f"flight-booking-batch-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
+
     # Task 1: File Sensor for GCS
     file_sensor = GCSObjectExistenceSensor(
         task_id="check_file_existence",
@@ -40,29 +44,40 @@ with DAG(
         mode="poke",  # Blocking mode
     )
 
-    # Task 2: Submit PySpark job to Dataproc
-    dataproc_job_config = {
-        "reference": {"project_id": "your-gcp-project-id"},
-        "placement": {"cluster_name": "your-dataproc-cluster-name"},
-        "pyspark_job": {
-            "main_python_file_uri": "gs://path-to-your-pyspark-script/flight_booking_analysis.py",
+    # Task 2: Submit PySpark job to Dataproc Serverless
+    batch_details={
+        "pyspark_batch": {
+            "main_python_file_uri": "gs://airflow-projetcs-gds/airflow-project-1/spark-job/spark_transformation_job.py",  # Main Python file
+            "python_file_uris": [],  # Python WHL files
+            "jar_file_uris": [],  # JAR files
             "args": [
                 f"--env={env}",
                 f"--mongodb_db={mongodb_db}",
                 f"--transformed_collection={transformed_collection}",
                 f"--route_insights_collection={route_insights_collection}",
                 f"--origin_insights_collection={origin_insights_collection}",
-            ],
+            ]
+        },
+        "runtime_config": {
+            "version": "2.2",  # Specify Dataproc version (if needed)
+        },
+        "environment_config": {
+            "execution_config": {
+                "service_account": "70622048644-compute@developer.gserviceaccount.com",
+                "network_tags": [],
+                "kms_key": "",
+            }
         },
     }
 
-    pyspark_task = DataprocSubmitJobOperator(
-        task_id="run_pyspark_job",
-        job=dataproc_job_config,
-        region="your-dataproc-region",
-        project_id="your-gcp-project-id",
-        gcp_conn_id="google_cloud_default",
-    )
+    pyspark_task = DataprocCreateBatchOperator(
+                    task_id="run_spark_job_on_dataproc_serverless",
+                    batch=batch_details,
+                    batch_id=batch_id,
+                    project_id="psyched-service-442305-q1",
+                    region="us-central1",
+                    gcp_conn_id="google_cloud_default",
+                )
 
     # Task Dependencies
     file_sensor >> pyspark_task
