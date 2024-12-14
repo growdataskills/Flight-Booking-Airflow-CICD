@@ -15,7 +15,7 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
     try:
 
         # MongoDB URI
-        mongo_uri = f"mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/{mongodb_db}?retryWrites=true&w=majority&connectTimeoutMS=80000"
+        mongo_uri = f"mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/{mongodb_db}?directConnection=true"
 
         # Initialize SparkSession
         spark = SparkSession.builder \
