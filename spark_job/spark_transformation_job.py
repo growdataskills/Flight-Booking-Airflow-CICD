@@ -13,9 +13,15 @@ logger = logging.getLogger(__name__)
 
 def main(env, mongodb_db, transformed_collection, route_insights_collection, origin_insights_collection):
     try:
+
+        # MongoDB URI
+        mongo_uri = f"mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/{mongodb_db}?retryWrites=true&w=majority&connectTimeoutMS=80000"
+
         # Initialize SparkSession
         spark = SparkSession.builder \
             .appName("FlightBookingAnalysis") \
+            .config("spark.mongodb.input.uri", mongo_uri) \
+            .config("spark.mongodb.output.uri", mongo_uri) \
             .getOrCreate()
 
         logger.info("Spark session initialized.")
@@ -56,9 +62,6 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
         )
 
         logger.info("Data transformations completed.")
-
-        # MongoDB URI
-        mongo_uri = "mongodb+srv://shashank_test:GrowDataSkills219@mongo-db-cluster.0iwho.mongodb.net/?retryWrites=true&w=majority&appName=mongo-db-cluster"
 
         # Write transformed data to MongoDB
         logger.info(f"Writing transformed data to MongoDB collection: {transformed_collection}")
