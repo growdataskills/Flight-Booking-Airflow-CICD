@@ -36,7 +36,7 @@ with DAG(
     # Task 1: File Sensor for GCS
     file_sensor = GCSObjectExistenceSensor(
         task_id="check_file_existence",
-        bucket="airflow-projects-gds",  # GCS bucket
+        bucket="airflow-projetcs-gds",  # GCS bucket
         object=f"airflow-project-1/source-{env}",  # GCS path
         google_cloud_conn_id="google_cloud_default",  # GCP connection
         timeout=300,  # Timeout in seconds
