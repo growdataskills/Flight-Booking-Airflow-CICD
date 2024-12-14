@@ -2,11 +2,8 @@ from datetime import datetime, timedelta
 import uuid  # Import UUID for unique batch IDs
 from airflow import DAG
 from airflow.providers.google.cloud.operators.dataproc import DataprocCreateBatchOperator
-from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor, GCSObjectExistenceSensor
 from airflow.models import Variable
-from airflow.providers.google.cloud.hooks.gcs import GCSHook
-from airflow.operators.python import PythonOperator
-import time
 
 # DAG default arguments
 default_args = {
@@ -40,34 +37,15 @@ with DAG(
     # Generate a unique batch ID using UUID
     batch_id = f"flight-booking-batch-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
 
-    # Custom Python function to check for .csv files in the prefix
-    def wait_for_csv_file(**kwargs):
-        bucket = gcs_bucket
-        prefix = f"airflow-project-1/source-{env}/"
-        max_wait_time = 300  # 5 minutes
-        interval = 30  # Check every 30 seconds
-
-        start_time = time.time()
-        gcs_hook = GCSHook()
-
-        while time.time() - start_time < max_wait_time:
-            files = gcs_hook.list(bucket_name=bucket, prefix=prefix)
-            csv_files = [file for file in files if file.endswith(".csv")]
-
-            if csv_files:
-                # Push the found file to XCom (optional)
-                kwargs['ti'].xcom_push(key='csv_file_name', value=csv_files[0])
-                return f"File found: {csv_files[0]}"
-
-            time.sleep(interval)
-
-        raise FileNotFoundError("No .csv file found within the timeout period.")
-
-    # Task 1: Custom PythonOperator to check for .csv files
-    check_csv_files_task = PythonOperator(
-        task_id="check_csv_files_in_gcs",
-        python_callable=wait_for_csv_file,
-        provide_context=True,
+    # # Task 1: File Sensor for GCS
+    file_sensor = GCSObjectExistenceSensor(
+        task_id="check_file_arrival",
+        bucket=gcs_bucket,
+        object=f"airflow-project-1/source-{env}/flight_booking.csv",  # Full file path in GCS
+        google_cloud_conn_id="google_cloud_default",  # GCP connection
+        timeout=300,  # Timeout in seconds
+        poke_interval=30,  # Time between checks
+        mode="poke",  # Blocking mode
     )
 
     # # Task 1: File Sensor for GCS
@@ -118,6 +96,4 @@ with DAG(
     )
 
     # Task Dependencies
-    # file_sensor >> pyspark_task
-
-    check_csv_files_task >> pyspark_task
+    file_sensor >> pyspark_task
