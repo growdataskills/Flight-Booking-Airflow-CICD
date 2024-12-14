@@ -16,7 +16,6 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
         # Initialize SparkSession
         spark = SparkSession.builder \
             .appName("FlightBookingAnalysis") \
-            .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:10.3.0") \
             .getOrCreate()
 
         logger.info("Spark session initialized.")

@@ -49,7 +49,7 @@ with DAG(
         "pyspark_batch": {
             "main_python_file_uri": "gs://airflow-projetcs-gds/airflow-project-1/spark-job/spark_transformation_job.py",  # Main Python file
             "python_file_uris": [],  # Python WHL files
-            "jar_file_uris": [],  # JAR files
+            "jar_file_uris": ["gs://airflow-projetcs-gds/airflow-project-1/spark-jars/mongo-spark-connector_2.12-10.3.0-all.jar"],  # JAR files
             "args": [
                 f"--env={env}",
                 f"--mongodb_db={mongodb_db}",
