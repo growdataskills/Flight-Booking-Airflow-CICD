@@ -72,7 +72,6 @@ with DAG(
                 "service_account": "70622048644-compute@developer.gserviceaccount.com",
                 "network_uri": "projects/psyched-service-442305-q1/global/networks/default",
                 "subnetwork_uri": "projects/psyched-service-442305-q1/regions/us-central1/subnetworks/default",
-                "enable_network_egress_control": False,  # Ensure public internet access
             }
         },
     }
