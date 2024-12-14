@@ -1,0 +1,7 @@
+{
+    "env": "prod",
+    "mongodb_db": "flight_data_prod",
+    "transformed_collection": "transformed_data_prod",
+    "route_insights_collection": "route_insights_prod",
+    "origin_insights_collection": "booking_origin_insights_prod"
+}
