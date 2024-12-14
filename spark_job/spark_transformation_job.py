@@ -22,7 +22,7 @@ def main(env, mongodb_db, transformed_collection, route_insights_collection, ori
         logger.info("Spark session initialized.")
 
         # Resolve GCS path based on the environment
-        input_path = f"gs://airflow-projects-gds/airflow-project-1/source-{env}"
+        input_path = f"gs://airflow-projetcs-gds/airflow-project-1/source-{env}"
         logger.info(f"Input path resolved: {input_path}")
 
         # Read the data from GCS
