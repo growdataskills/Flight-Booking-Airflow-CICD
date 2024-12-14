@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import uuid  # Import UUID for unique batch IDs
 from airflow import DAG
 from airflow.providers.google.cloud.operators.dataproc import DataprocCreateBatchOperator
-from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor
 from airflow.models import Variable
 
 # DAG default arguments
@@ -34,10 +34,10 @@ with DAG(
     batch_id = f"flight-booking-batch-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
 
     # Task 1: File Sensor for GCS
-    file_sensor = GCSObjectExistenceSensor(
+    file_sensor = GCSObjectsWithPrefixExistenceSensor(
         task_id="check_file_existence",
         bucket="airflow-projetcs-gds",  # GCS bucket
-        object=f"airflow-project-1/source-{env}",  # GCS path
+        prefix=f"airflow-project-1/source-{env}/",  # GCS path
         google_cloud_conn_id="google_cloud_default",  # GCP connection
         timeout=300,  # Timeout in seconds
         poke_interval=30,  # Time between checks
