@@ -5,9 +5,6 @@ on:
     branches:
       - dev
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   upload-to-dev:
@@ -49,7 +46,7 @@ jobs:
           gsutil cp spark_job/spark_transformation_job.py gs://airflow-projetcs-gds/airflow-project-1/spark-job/
 
       # Sync Airflow DAG to Airflow DEV Composer
-      - name: Upload Airflow Test DAG to DEV
+      - name: Upload Airflow DAG to DEV
         run: |
           gcloud composer environments storage dags import \
             --environment airflow-dev \
@@ -95,7 +92,7 @@ jobs:
           gsutil cp spark_job/spark_transformation_job.py gs://airflow-projetcs-gds/airflow-project-1/spark-job/
 
       # Sync Airflow DAG to Airflow PROD Composer
-      - name: Upload Airflow Test DAG to PROD
+      - name: Upload Airflow DAG to PROD
         run: |
           gcloud composer environments storage dags import \
             --environment airflow-prod \
