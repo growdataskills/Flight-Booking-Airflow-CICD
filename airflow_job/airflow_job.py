@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import uuid  # Import UUID for unique batch IDs
 from airflow import DAG
 from airflow.providers.google.cloud.operators.dataproc import DataprocCreateBatchOperator
-from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor, GCSObjectExistenceSensor
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
 from airflow.models import Variable
 
 # DAG default arguments
@@ -35,7 +35,7 @@ with DAG(
     origin_insights_table = tables["origin_insights_table"]
 
     # Generate a unique batch ID using UUID
-    batch_id = f"flight-booking-batch-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
+    batch_id = f"flight-booking-batch-{env}-{str(uuid.uuid4())[:8]}"  # Shortened UUID for brevity
 
     # # Task 1: File Sensor for GCS
     file_sensor = GCSObjectExistenceSensor(
@@ -48,23 +48,12 @@ with DAG(
         mode="poke",  # Blocking mode
     )
 
-    # # Task 1: File Sensor for GCS
-    # file_sensor = GCSObjectsWithPrefixExistenceSensor(
-    #     task_id="check_file_existence",
-    #     bucket=gcs_bucket,  # GCS bucket
-    #     prefix=f"airflow-project-1/source-{env}/",  # GCS path
-    #     google_cloud_conn_id="google_cloud_default",  # GCP connection
-    #     timeout=300,  # Timeout in seconds
-    #     poke_interval=30,  # Time between checks
-    #     mode="poke",  # Blocking mode
-    # )
-
     # Task 2: Submit PySpark job to Dataproc Serverless
     batch_details = {
         "pyspark_batch": {
             "main_python_file_uri": f"gs://{gcs_bucket}/airflow-project-1/spark-job/spark_transformation_job.py",  # Main Python file
             "python_file_uris": [],  # Python WHL files
-            "jar_file_uris": ["gs://airflow-projetcs-gds/airflow-project-1/spark-jars/mongo-spark-connector_2.12-10.3.0-all.jar"],  # JAR files
+            "jar_file_uris": [],  # JAR files
             "args": [
                 f"--env={env}",
                 f"--bq_project={bq_project}",
